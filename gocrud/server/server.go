@@ -6,6 +6,9 @@ import (
 	"gocrud/database"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type user struct {
@@ -105,5 +108,37 @@ func SearchUsers(w http.ResponseWriter, r *http.Request) {
 
 // SearchUser searches a specified user from database
 func SearchUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 
+	ID, err := strconv.ParseUint(params["id"], 10, 32)
+	if err != nil {
+		w.Write([]byte("Error while converting params to int"))
+		return
+	}
+
+	database, err := database.Connect()
+	if err != nil {
+		w.Write([]byte("Error while connecting to database"))
+		return
+	}
+
+	line, err := database.Query("select * from users where id = ?", ID)
+	if err != nil {
+		w.Write([]byte("Error while searching user"))
+		return
+	}
+
+	var user user
+	if line.Next() {
+		if err := line.Scan(&user.ID, &user.Name, &user.Email); err != nil {
+			w.Write([]byte("Error while scanning user"))
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(user); err != nil {
+		w.Write([]byte("Error while converting user to json"))
+		return
+	}
 }
