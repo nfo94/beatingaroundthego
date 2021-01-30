@@ -144,6 +144,45 @@ func SearchUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // UpdateUser updates a specified user from database
-func UpdateUser(w http.Request, r http.Response) {
+func UpdateUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 
+	ID, err := strconv.ParseUint(params["id"], 10, 32)
+	if err != nil {
+		w.Write([]byte("Error while converting param to int"))
+		return
+	}
+
+	reqBody, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.Write([]byte("Error while reading request body"))
+		return
+	}
+
+	var user user
+	if err = json.Unmarshal(reqBody, &user); err != nil {
+		w.Write([]byte("Error while converting user to struct"))
+		return
+	}
+
+	database, err := database.Connect()
+	if err != nil {
+		w.Write([]byte("Error while connecting to database"))
+		return
+	}
+	defer database.Close()
+
+	statement, err := database.Prepare("update users set name = ?, email = ? where id = ?")
+	if err != nil {
+		w.Write([]byte("Error while creating statement"))
+		return
+	}
+	defer statement.Close()
+
+	if _, err := statement.Exec(user.Name, user.Email, ID); err != nil {
+		w.Write([]byte("Error while updateing user"))
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
