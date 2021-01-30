@@ -142,3 +142,8 @@ func SearchUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// UpdateUser updates a specified user from database
+func UpdateUser(w http.Request, r http.Response) {
+
+}
